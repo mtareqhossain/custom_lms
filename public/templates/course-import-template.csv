@@ -1,0 +1,4 @@
+course_slug,course_title,course_summary,level,status,pricing_type,price,currency,access_days,category,instructor_email,thumbnail_file,section,lesson_title,lesson_type,video_provider,video_ref,duration_seconds,content,is_preview,attachment_file
+intro-to-safety,Intro to Workplace Safety,Spot hazards and stay safe.,beginner,published,free,,,,Compliance,instructor@lms.test,safety.jpg,Getting started,Welcome,text,,,120,<p>Welcome to the course.</p>,yes,
+intro-to-safety,,,,,,,,,,,,Getting started,Why safety matters,video,youtube,YOUR_VIDEO_ID,420,,no,
+intro-to-safety,,,,,,,,,,,,Core skills,Hazard checklist,text,,,300,<p>Use the attached checklist.</p>,no,checklist.pdf

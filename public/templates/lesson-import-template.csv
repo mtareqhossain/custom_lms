@@ -1,0 +1,4 @@
+section,lesson_title,lesson_type,video_provider,video_ref,duration_seconds,content,is_preview,attachment_file
+Getting started,Welcome,text,,,120,<p>Welcome to the course.</p>,yes,
+Getting started,Why this matters,video,youtube,YOUR_VIDEO_ID,420,,no,
+Core skills,Checklist,text,,,300,<p>Use the attached checklist.</p>,no,checklist.pdf

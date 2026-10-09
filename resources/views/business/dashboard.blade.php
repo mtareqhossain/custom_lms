@@ -5,7 +5,6 @@
             <h1 class="display text-3xl">Team overview</h1>
             <p class="muted mt-1">{{ auth()->user()->organization?->name }}</p>
         </div>
-        {{-- <a href="{{ route('business.import.create') }}" class="btn"><x-icon name="upload" class="h-4 w-4" /> Import students</a> --}}
         <a href="{{ route('business.import.create') }}" class="btn"><x-lms-icon name="upload" class="h-4 w-4" /> Import students</a>
     </div>
 
@@ -21,10 +20,22 @@
     <div class="mt-3 space-y-3">
         @forelse($courses as $course)
             @php($pct = $course->enrolled_count ? (int) round($course->completed_count / $course->enrolled_count * 100) : 0)
+            @php($seatsFull = $course->seat_limit && $course->enrolled_count >= $course->seat_limit)
             <a href="{{ route('business.course', $course) }}" class="panel flex flex-col gap-3 p-5 transition hover:border-[var(--teal)] sm:flex-row sm:items-center">
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold">{{ $course->title }}</p>
-                    <p class="muted text-sm">{{ $course->enrolled_count }} enrolled, {{ $course->completed_count }} completed</p>
+                    <p class="muted text-sm">
+                        {{ $course->enrolled_count }} enrolled, {{ $course->completed_count }} completed
+                        &middot;
+                        @if($course->seat_limit)
+                            <span class="{{ $seatsFull ? 'font-medium' : '' }}" style="{{ $seatsFull ? 'color:#B45309;' : '' }}">
+                                {{ $course->enrolled_count }} / {{ $course->seat_limit }} seats
+                                @if($seatsFull) &mdash; full @endif
+                            </span>
+                        @else
+                            unlimited seats
+                        @endif
+                    </p>
                 </div>
                 <div class="flex items-center gap-3 sm:w-60">
                     <div class="bar flex-1"><span style="width: {{ $pct }}%"></span></div>

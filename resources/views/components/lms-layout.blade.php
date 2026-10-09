@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.lms-styles')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="min-h-screen antialiased">
 <header class="border-b border-[var(--line)] bg-white">

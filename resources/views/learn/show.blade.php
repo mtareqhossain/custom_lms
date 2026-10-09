@@ -83,6 +83,9 @@
                 </form>
             @endif
         </div>
-    </section>
+        </section>
 </div>
+
+<x-course-chatbot :course="$course" />
+
 </x-lms-layout>

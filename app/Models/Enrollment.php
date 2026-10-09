@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Enums\EnrollmentSource;
+use App\Exceptions\SeatLimitExceededException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
 
@@ -28,14 +29,34 @@ class Enrollment extends Model
     /** Single entry point so purchases, business bulk uploads and admin grants all behave the same. */
     public static function grant(User $user, Course $course, EnrollmentSource $source, ?int $orgId = null): self
     {
-        return static::firstOrCreate(
-            ['user_id' => $user->id, 'course_id' => $course->id],
-            [
-                'organization_id' => $orgId,
-                'source' => $source,
-                'starts_at' => now(),
-                'expires_at' => $course->accessExpiryFrom(),
-            ],
-        );
+        $existing = static::where('user_id', $user->id)->where('course_id', $course->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        if ($orgId) {
+            $seatLimit = CourseOrganization::where('course_id', $course->id)
+                ->where('organization_id', $orgId)
+                ->value('seat_limit');
+
+            if ($seatLimit !== null) {
+                $used = static::where('course_id', $course->id)->where('organization_id', $orgId)->count();
+
+                if ($used >= $seatLimit) {
+                    throw new SeatLimitExceededException(
+                        "This organization has used all {$seatLimit} seat(s) for \"{$course->title}\"."
+                    );
+                }
+            }
+        }
+
+        return static::create([
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'organization_id' => $orgId,
+            'source' => $source,
+            'starts_at' => now(),
+            'expires_at' => $course->accessExpiryFrom(),
+        ]);
     }
 }

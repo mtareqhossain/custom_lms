@@ -29,8 +29,8 @@ class OrganizationResource extends Resource
             Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('contact_email')->email()->required(),
             Forms\Components\Toggle::make('is_active')->default(true),
-            Forms\Components\Select::make('courses')->relationship('courses', 'title')->multiple()->searchable()->preload()->columnSpanFull()
-                ->helperText('Courses this business may enroll students in.'),
+            // Forms\Components\Select::make('courses')->relationship('courses', 'title')->multiple()->searchable()->preload()->columnSpanFull()
+            //     ->helperText('Courses this business may enroll students in.'),
         ]);
     }
 
@@ -53,4 +53,11 @@ class OrganizationResource extends Resource
             'edit' => Pages\EditOrganization::route('/{record}/edit'),
         ];
     }
+
+    public static function getRelations(): array
+{
+    return [
+        \App\Filament\Resources\OrganizationResource\RelationManagers\CoursesRelationManager::class,
+    ];
+}
 }

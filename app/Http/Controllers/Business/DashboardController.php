@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\Course;
+use App\Models\CourseOrganization;
 use App\Models\Enrollment;
 use App\Models\LessonProgress;
 use App\Models\User;
@@ -35,12 +36,18 @@ class DashboardController extends Controller
             'certificates' => Certificate::whereHas('enrollment', fn ($q) => $q->where('organization_id', $orgId))->count(),
         ];
 
+        $seatLimits = CourseOrganization::where('organization_id', $orgId)
+            ->pluck('seat_limit', 'course_id');
+
         $courses = Course::whereHas('enrollments', fn ($q) => $q->where('organization_id', $orgId))
             ->withCount([
                 'enrollments as enrolled_count' => fn ($q) => $q->where('organization_id', $orgId),
                 'enrollments as completed_count' => fn ($q) => $q->where('organization_id', $orgId)->whereNotNull('completed_at'),
             ])
-            ->get();
+            ->get()
+            ->each(function ($course) use ($seatLimits) {
+                $course->seat_limit = $seatLimits[$course->id] ?? null;
+            });
 
         $notStarted = $base()->with(['user', 'course'])
             ->where('progress_percent', 0)->whereNull('completed_at')
@@ -61,15 +68,21 @@ class DashboardController extends Controller
 
     public function course(Course $course)
     {
+        $orgId = $this->orgId();
+
         $enrollments = $course->enrollments()
-            ->where('organization_id', $this->orgId())
+            ->where('organization_id', $orgId)
             ->with(['user', 'certificate'])
             ->orderByDesc('progress_percent')
             ->get();
 
         abort_if($enrollments->isEmpty(), 404);
 
-        return view('business.course', compact('course', 'enrollments'));
+        $seatLimit = CourseOrganization::where('course_id', $course->id)
+            ->where('organization_id', $orgId)
+            ->value('seat_limit');
+
+        return view('business.course', compact('course', 'enrollments', 'seatLimit'));
     }
 
     public function students(Request $request)

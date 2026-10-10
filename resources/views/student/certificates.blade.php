@@ -6,7 +6,8 @@
     <div class="mt-6 space-y-4">
         @forelse($enrollments as $e)
             <div class="panel flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--teal-dark)]"><x-icon name="award" class="h-6 w-6" /></span>
+                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--teal-dark)]">
+                    <x-heroicon-o-academic-cap class="h-6 w-6" /></span>
                 <div class="min-w-0 flex-1">
                     <h2 class="display text-lg">{{ $e->course->title }}</h2>
                     <p class="muted text-sm">Issued {{ $e->certificate->issued_at->format('j F Y') }} &middot; Code {{ Str::substr($e->certificate->code, 0, 8) }}</p>

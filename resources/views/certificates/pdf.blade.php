@@ -39,6 +39,7 @@
         height: 110px;
     }
     .content {
+        margin-left: 150px;
         position: relative;
         text-align: center;
         padding: 80px 70px;
@@ -52,7 +53,7 @@
     h1 {
         font-size: 20px;
         color: #10222B;
-        margin: 30px 0 6px;
+        margin: 20px 0 6px;
         font-family: '{{ $fonts['heading']?->cssFamily() ?? 'sans-serif' }}';
     }
     .name {
@@ -68,9 +69,15 @@
         font-family: '{{ $fonts['course']?->cssFamily() ?? 'sans-serif' }}';
     }
     .meta {
-        font-size: 12px;
-        color: #5B6B75;
-        margin-top: 40px;
+        font-size: 14px;
+        color: #04151f;
+        margin-top: 20px;
+        font-family: '{{ $fonts['meta']?->cssFamily() ?? 'sans-serif' }}';
+    }
+    .metas {
+        font-size: 14px;
+        color: #051620;
+        margin-top: 10px;
         font-family: '{{ $fonts['meta']?->cssFamily() ?? 'sans-serif' }}';
     }
 </style>
@@ -85,12 +92,14 @@
     @endif
 
     <div class="content">
+        <h2><x-application-logo class="mx-auto h-8" /></h2>
         <p class="eyebrow">CERTIFICATE OF COMPLETION</p>
         <h1>This certifies that</h1>
         <p class="name">{{ $studentName }}</p>
         <h1>has successfully completed</h1>
         <p class="course">{{ $courseTitle }}</p>
-        <p class="meta">Completed {{ $completedAt->format('j F Y') }} &middot; Verification code: {{ $code }}</p>
+        <p class="meta">Completed {{ $completedAt->format('j F Y') }} &middot; </p>
+        <p class="metas">Verification code: {{ $code }}</p>
     </div>
 </body>
 </html>

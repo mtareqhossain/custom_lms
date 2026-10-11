@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\User;
+use App\Services\ContentIndexer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -31,6 +32,9 @@ class ImportContentJob implements ShouldQueue
     private ?ZipArchive $zip = null;
     /** @var array<string,string> lowercase basename => path inside the ZIP */
     private array $media = [];
+
+    /** @var int[] course IDs touched by this import, re-indexed for the chatbot once at the end */
+    private array $touchedCourseIds = [];
 
     public function __construct(private readonly int $bulkImportId, private readonly ?string $mediaZipPath = null) {}
 
@@ -68,6 +72,17 @@ class ImportContentJob implements ShouldQueue
         }
 
         $this->zip?->close();
+
+        // Re-index every course this import touched, so the course chatbot
+        // can see the newly imported/updated lesson content.
+        if ($this->touchedCourseIds) {
+            $indexer = app(ContentIndexer::class);
+            foreach (array_unique($this->touchedCourseIds) as $courseId) {
+                if ($course = Course::find($courseId)) {
+                    $indexer->indexCourse($course);
+                }
+            }
+        }
 
         $import->update([
             'status' => 'completed',
@@ -125,6 +140,7 @@ class ImportContentJob implements ShouldQueue
         }
 
         $course = $this->upsertCourse($slug, $get, $import);
+        $this->touchedCourseIds[] = $course->id;
 
         $section = Section::where('course_id', $course->id)->where('title', $sectionTitle)->first()
             ?? Section::create([

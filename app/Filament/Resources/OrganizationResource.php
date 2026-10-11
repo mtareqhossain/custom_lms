@@ -16,10 +16,8 @@ class OrganizationResource extends Resource
     protected static ?string $model = Organization::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->hasRole('admin') ?? false;
-    }
+    public static function canViewAny(): bool { return auth()->user()->can('organizations.manage'); }
+
 
     public static function form(Form $form): Form
     {

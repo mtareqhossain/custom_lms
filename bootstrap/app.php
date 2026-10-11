@@ -3,7 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,12 +14,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-    $middleware->alias([
-        'business' => \App\Http\Middleware\EnsureBusinessUser::class,
-    ]);
-    $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-    $middleware->validateCsrfTokens(except: ['stripe/webhook']);
-})
+        $middleware->alias([
+            'business' => \App\Http\Middleware\EnsureBusinessUser::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+        ]);
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

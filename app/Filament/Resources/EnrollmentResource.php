@@ -15,10 +15,8 @@ class EnrollmentResource extends Resource
     protected static ?string $model = Enrollment::class;
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->hasRole('admin') ?? false;
-    }
+    public static function canViewAny(): bool { return auth()->user()->can('enrollments.manage'); }
+
 
     public static function form(Form $form): Form
     {

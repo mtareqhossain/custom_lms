@@ -3,10 +3,16 @@ use App\Http\Controllers\Business\{CertificateExportController, DashboardControl
 use App\Http\Controllers\CertificateController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'business'])->prefix('business')->name('business.')->group(function () {
+Route::middleware(['auth', 'business', 'permission:business.dashboard.view'])->prefix('business')->name('business.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/courses/{course}', [DashboardController::class, 'course'])->name('course');
+});
+
+Route::middleware(['auth', 'business', 'permission:business.export'])->prefix('business')->name('business.')->group(function () {
     Route::get('/courses/{course}/certificates.zip', CertificateExportController::class)->name('certificates.export');
+});
+
+Route::middleware(['auth', 'business', 'permission:students.import'])->prefix('business')->name('business.')->group(function () {
     Route::get('/import', [StudentImportController::class, 'create'])->name('import.create');
     Route::post('/import', [StudentImportController::class, 'store'])->name('import.store');
 });

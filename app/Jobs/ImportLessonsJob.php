@@ -6,6 +6,7 @@ use App\Models\BulkImport;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Section;
+use App\Services\ContentIndexer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -70,6 +71,12 @@ class ImportLessonsJob implements ShouldQueue
         }
 
         $this->zip?->close();
+
+        // Re-index this course now that its lessons changed, so the course
+        // chatbot can see the newly imported content.
+        if ($ok > 0) {
+            app(ContentIndexer::class)->indexCourse($course);
+        }
 
         $import->update([
             'status' => 'completed',

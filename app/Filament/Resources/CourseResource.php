@@ -8,6 +8,7 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,6 +25,26 @@ class CourseResource extends Resource
         return auth()->user()->hasRole('admin');
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('courses.view');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('courses.create');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->can('courses.edit');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->can('courses.delete');
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
@@ -37,6 +58,14 @@ class CourseResource extends Resource
         if (! self::isAdmin() || empty($data['instructor_id'])) {
             $data['instructor_id'] = $record?->instructor_id ?? auth()->id();
         }
+
+        // Defense in depth: even if a non-admin somehow submits status=published
+        // (tampered request, future bug in the form), never let it through.
+        // Admins publish only via the explicit "Publish" table action below.
+        if (! self::isAdmin() && ($data['status'] ?? null) === 'published') {
+            $data['status'] = $record?->status === 'published' ? 'published' : 'pending_review';
+        }
+
         if (($data['status'] ?? null) === 'published' && ! $record?->published_at) {
             $data['published_at'] = now();
         }
@@ -67,8 +96,23 @@ class CourseResource extends Resource
                         ]),
                     Forms\Components\Select::make('level')->required()->default('beginner')
                         ->options(['beginner' => 'Beginner', 'intermediate' => 'Intermediate', 'advanced' => 'Advanced']),
+
                     Forms\Components\Select::make('status')->required()->default('draft')
-                        ->options(['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived']),
+                        ->options(fn () => self::isAdmin()
+                            ? [
+                                'draft' => 'Draft',
+                                'pending_review' => 'Pending review',
+                                'published' => 'Published',
+                                'archived' => 'Archived',
+                            ]
+                            : [
+                                'draft' => 'Draft',
+                                'pending_review' => 'Submit for review',
+                            ])
+                        ->helperText(fn () => self::isAdmin()
+                            ? null
+                            : 'Choose "Submit for review" when ready — an admin will review and publish it.'),
+
                     Forms\Components\Textarea::make('summary')->rows(2)->columnSpanFull(),
                     Forms\Components\RichEditor::make('description')->columnSpanFull(),
                     Forms\Components\FileUpload::make('thumbnail')->image()->directory('thumbnails')->imageEditor(),
@@ -133,7 +177,16 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('title')->searchable()->sortable()->limit(40),
                 Tables\Columns\TextColumn::make('instructor.name')->visible(fn () => self::isAdmin()),
                 Tables\Columns\TextColumn::make('status')->badge()
-                    ->color(fn (string $state) => match ($state) { 'published' => 'success', 'draft' => 'gray', default => 'warning' }),
+                    ->color(fn (string $state) => match ($state) {
+                        'published' => 'success',
+                        'pending_review' => 'warning',
+                        'draft' => 'gray',
+                        default => 'danger',
+                    })
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'pending_review' => 'Pending review',
+                        default => ucfirst($state),
+                    }),
                 Tables\Columns\TextColumn::make('price')
                     ->getStateUsing(fn (Course $r) => $r->isFree() ? 'Free' : $r->currency.' '.number_format($r->price_cents / 100, 2)),
                 Tables\Columns\TextColumn::make('access')
@@ -141,10 +194,41 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('enrollments_count')->counts('enrollments')->label('Students')->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')->options(['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived']),
+                Tables\Filters\SelectFilter::make('status')->options([
+                    'draft' => 'Draft', 'pending_review' => 'Pending review', 'published' => 'Published', 'archived' => 'Archived',
+                ]),
                 Tables\Filters\SelectFilter::make('pricing_type')->options(['free' => 'Free', 'paid' => 'Paid']),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
+            ->actions([
+                Tables\Actions\Action::make('publish')
+                    ->label('Publish')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (Course $record) => auth()->user()->can('courses.publish') && $record->status === 'pending_review')
+                    ->requiresConfirmation()
+                    ->modalDescription('This makes the course live and visible to students.')
+                    ->action(function (Course $record) {
+                        $record->update([
+                            'status' => 'published',
+                            'published_at' => $record->published_at ?? now(),
+                        ]);
+                        Notification::make()->title('Course published')->success()->send();
+                    }),
+
+                Tables\Actions\Action::make('reject')
+                    ->label('Send back')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn (Course $record) => auth()->user()->can('courses.publish') && $record->status === 'pending_review')
+                    ->requiresConfirmation()
+                    ->modalDescription('Sends this course back to draft so the instructor can make changes.')
+                    ->action(function (Course $record) {
+                        $record->update(['status' => 'draft']);
+                        Notification::make()->title('Sent back to draft')->send();
+                    }),
+
+                Tables\Actions\EditAction::make(),
+            ])
             ->defaultSort('created_at', 'desc');
     }
 

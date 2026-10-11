@@ -18,10 +18,7 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->hasRole('admin') ?? false;
-    }
+    public static function canViewAny(): bool { return auth()->user()->can('categories.manage'); }
 
     public static function form(Form $form): Form
     {

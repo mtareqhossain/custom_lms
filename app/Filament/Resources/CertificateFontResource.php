@@ -19,6 +19,8 @@ class CertificateFontResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function canViewAny(): bool { return auth()->user()->can('certificate_fonts.manage'); }
+
     // app/Filament/Resources/CertificateFontResource.php
 public static function form(Form $form): Form
 {

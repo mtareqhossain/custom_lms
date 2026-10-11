@@ -15,10 +15,8 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->hasRole('admin') ?? false;
-    }
+    public static function canViewAny(): bool { return auth()->user()->can('users.manage'); }
+
 
     public static function form(Form $form): Form
     {

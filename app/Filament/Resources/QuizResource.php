@@ -24,6 +24,9 @@ class QuizResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canViewAny(): bool { return auth()->user()->can('quizzes.manage'); }
+
+
     /**
      * Admins see every quiz. Instructors only see/manage quizzes that belong
      * to courses they own — same data-isolation pattern used for businesses

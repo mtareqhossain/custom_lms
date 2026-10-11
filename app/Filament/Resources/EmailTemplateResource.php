@@ -22,13 +22,8 @@ class EmailTemplateResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function canCreate(): bool
-    {
-        // System templates are seeded; admins can still add extra custom ones
-        // for use in campaigns, but the core flow templates (slugs below)
-        // should not be duplicated.
-        return true;
-    }
+    public static function canCreate(): bool { return auth()->user()->can('email_templates.manage'); }
+public static function canViewAny(): bool { return auth()->user()->can('email_templates.manage'); }
 
     public static function form(Form $form): Form
     {

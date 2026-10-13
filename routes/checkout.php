@@ -3,7 +3,8 @@ use App\Http\Controllers\{CheckoutController, OrderController, StripeWebhookCont
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
-    Route::post('/courses/{course:slug}/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    // Route::post('/courses/{course:slug}/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::match(['get', 'post'], '/courses/{course:slug}/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/orders/success', [CheckoutController::class, 'success'])->name('orders.success');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
 });

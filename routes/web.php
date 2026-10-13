@@ -24,7 +24,7 @@ Route::get('/admin/settings/site', [SiteSettingController::class, 'edit'])
         ->name('admin.settings.site.update');
 require __DIR__.'/auth.php';
 require __DIR__.'/lms.php';
-// require __DIR__.'/checkout.php';
+require __DIR__.'/checkout.php';
 require __DIR__.'/business.php';
 require __DIR__.'/phase5.php';
 require __DIR__.'/phase6.php';

@@ -12,12 +12,15 @@ class CreateCourse extends CreateRecord
     {
         return CourseResource::prepare($data);
     }
+
     protected function afterCreate(): void
-{
-    foreach ($this->record->sections as $section) {
-        foreach ($section->lessons as $lesson) {
-            app(\App\Services\ContentIndexer::class)->indexLesson($lesson);
+    {
+        app(\App\Services\StripePriceSync::class)->sync($this->record);
+
+        foreach ($this->record->sections as $section) {
+            foreach ($section->lessons as $lesson) {
+                app(\App\Services\ContentIndexer::class)->indexLesson($lesson);
+            }
         }
     }
-}
 }

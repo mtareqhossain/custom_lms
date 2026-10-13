@@ -52,12 +52,15 @@ class EditCourse extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
     protected function afterSave(): void
-{
-    foreach ($this->record->sections as $section) {
-        foreach ($section->lessons as $lesson) {
-            app(\App\Services\ContentIndexer::class)->indexLesson($lesson);
+    {
+        app(\App\Services\StripePriceSync::class)->sync($this->record);
+
+        foreach ($this->record->sections as $section) {
+            foreach ($section->lessons as $lesson) {
+                app(\App\Services\ContentIndexer::class)->indexLesson($lesson);
+            }
         }
     }
-}
 }

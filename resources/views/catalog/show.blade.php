@@ -75,9 +75,10 @@
                     @elseif($enrollment)
                         <p class="text-sm font-medium">Your access has expired.</p>
                     @elseif(auth()->check())
-                        <form method="POST" action="{{ route('courses.enroll', $course) }}">@csrf
+                        {{-- <form method="POST" action="{{ route('courses.enroll', $course) }}">@csrf
                             <button class="btn w-full">{{ $course->isFree() ? 'Start course' : 'Buy course' }}</button>
-                        </form>
+                        </form> --}}
+                        <a href="{{ route('courses.enroll', $course) }}" class="btn w-full">{{ $course->isFree() ? 'Start course' : 'Buy course' }}</a>
                     @else
                         <a href="{{ route('register') }}" class="btn w-full">Create account to start</a>
                         <p class="muted mt-3 text-center text-sm">Already registered? <a class="underline" href="{{ route('login') }}">Log in</a></p>

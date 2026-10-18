@@ -16,6 +16,11 @@
         <x-stat label="Certificates" :value="$stats['certificates']" class="col-span-2 lg:col-span-1" />
     </div>
 
+        <div class="mt-8 grid gap-6 lg:grid-cols-2">
+        <x-charts.status-breakdown :data="$statusBreakdown" :total="$stats['enrollments']" />
+        <x-charts.enrollment-trend :trend="$trend" />
+    </div>
+
     <h2 class="display mt-10 text-xl">Progress by course</h2>
     <div class="mt-3 space-y-3">
         @forelse($courses as $course)

@@ -1,9 +1,9 @@
 <x-panel-layout title="Team">
 <div class="mx-auto max-w-6xl px-4 py-8">
     <h1 class="display text-3xl">Team</h1>
-    <p class="muted mt-1">Every enrollment across your organization.</p>
+    <p class="muted mt-1">Every student in your organization, enrolled or not.</p>
 
-    <form method="GET" class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_14rem_11rem_auto_auto]">
+    <form method="GET" class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_14rem_12rem_auto_auto]">
         <input name="q" value="{{ request('q') }}" placeholder="Search name, email or staff ID" class="field" aria-label="Search">
         <select name="course" class="field" aria-label="Course">
             <option value="">All courses</option>
@@ -11,7 +11,7 @@
         </select>
         <select name="status" class="field" aria-label="Status">
             <option value="">Any status</option>
-            @foreach(['completed' => 'Completed', 'in_progress' => 'In progress', 'not_started' => 'Not started', 'expired' => 'Expired'] as $val => $label)
+            @foreach(['completed' => 'Completed', 'in_progress' => 'In progress', 'not_started' => 'Not started', 'expired' => 'Expired', 'not_enrolled' => 'Not enrolled'] as $val => $label)
                 <option value="{{ $val }}" @selected(request('status') === $val)>{{ $label }}</option>
             @endforeach
         </select>
@@ -21,37 +21,49 @@
 
     <div class="panel mt-6 overflow-x-auto">
         <table class="tbl">
-            <thead><tr><th>Student</th><th>Course</th><th>Progress</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Student</th><th>Courses</th><th>Enrolled</th><th>Completed</th><th></th></tr></thead>
             <tbody>
-                @forelse($enrollments as $e)
+                @forelse($students as $student)
                     <tr>
                         <td>
-                            <p class="font-medium">{{ $e->user->name }}</p>
-                            <p class="muted text-xs">{{ $e->user->email }}@if($e->user->employee_ref) &middot; {{ $e->user->employee_ref }}@endif</p>
-                        </td>
-                        <td>{{ $e->course->title }}</td>
-                        <td>
-                            <div class="flex items-center gap-3">
-                                <div class="bar w-28"><span style="width: {{ (int) $e->progress_percent }}%"></span></div>
-                                <span class="muted text-xs">{{ (int) $e->progress_percent }}%</span>
-                            </div>
+                            <p class="font-medium">{{ $student->name }}</p>
+                            <p class="muted text-xs">{{ $student->email }}@if($student->employee_ref) &middot; {{ $student->employee_ref }}@endif</p>
                         </td>
                         <td>
-                            @if($e->completed_at)<span class="pill">Completed</span>
-                            @elseif($e->expires_at && $e->expires_at->isPast())<span class="pill pill-warn">Expired</span>
-                            @elseif((int) $e->progress_percent === 0)<span class="pill pill-grey">Not started</span>
-                            @else<span class="pill pill-grey">In progress</span>@endif
+                            @if($student->enrollments->isEmpty())
+                                <span class="pill pill-grey">Not enrolled yet</span>
+                            @else
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($student->enrollments->take(3) as $e)
+                                        @php
+                                            $label = $e->completed_at ? 'Completed' : ($e->expires_at && $e->expires_at->isPast() ? 'Expired' : ((int) $e->progress_percent === 0 ? 'Not started' : 'In progress'));
+                                            $pillClass = match(true) {
+                                                (bool) $e->completed_at => '',
+                                                $e->expires_at && $e->expires_at->isPast() => 'pill-warn',
+                                                default => 'pill-grey',
+                                            };
+                                        @endphp
+                                        <span class="pill {{ $pillClass }}" title="{{ $e->course->title }}: {{ $label }}">{{ Str::limit($e->course->title, 20) }}</span>
+                                    @endforeach
+                                    @if($student->enrollments->count() > 3)
+                                        <span class="muted text-xs">+{{ $student->enrollments->count() - 3 }} more</span>
+                                    @endif
+                                </div>
+                            @endif
                         </td>
+                        <td class="tabular-nums">{{ $student->enrollments_count }}</td>
+                        <td class="tabular-nums">{{ $student->completed_count }}</td>
                         <td class="text-right">
-                            @if($e->certificate)<a href="{{ route('certificates.download', $e->certificate->code) }}" class="text-sm font-medium underline">Certificate</a>@endif
+                            @php($cert = $student->enrollments->first(fn ($e) => $e->certificate))
+                            @if($cert)<a href="{{ route('certificates.download', $cert->certificate->code) }}" class="text-sm font-medium underline">Certificate</a>@endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="muted !py-10 text-center">No enrollments match these filters.</td></tr>
+                    <tr><td colspan="5" class="muted !py-10 text-center">No students match these filters.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    <div class="mt-6">{{ $enrollments->links() }}</div>
+    <div class="mt-6">{{ $students->links() }}</div>
 </div>
 </x-panel-layout>

@@ -23,6 +23,7 @@ class DashboardController extends Controller
     {
         $orgId = $this->orgId();
         $base = fn () => Enrollment::where('organization_id', $orgId);
+        $notExpired = fn ($q) => $q->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>=', now()));
 
         $total = $base()->count();
         $completed = $base()->whereNotNull('completed_at')->count();
@@ -35,6 +36,31 @@ class DashboardController extends Controller
                 ->where('updated_at', '>=', now()->subDays(7))->distinct()->count('enrollment_id'),
             'certificates' => Certificate::whereHas('enrollment', fn ($q) => $q->where('organization_id', $orgId))->count(),
         ];
+
+        // Mutually exclusive buckets, in priority order, so they sum back to $total.
+        $expired = $base()->whereNull('completed_at')->whereNotNull('expires_at')->where('expires_at', '<', now())->count();
+        $inProgress = $notExpired($base()->whereNull('completed_at')->where('progress_percent', '>', 0))->count();
+        $notStarted = $notExpired($base()->whereNull('completed_at')->where('progress_percent', 0))->count();
+
+        $statusBreakdown = [
+            'completed' => $completed,
+            'in_progress' => $inProgress,
+            'not_started' => $notStarted,
+            'expired' => $expired,
+        ];
+
+        $weeklyCounts = $base()
+            ->where('created_at', '>=', now()->subWeeks(7)->startOfWeek())
+            ->get()
+            ->groupBy(fn ($e) => $e->created_at->startOfWeek()->format('Y-m-d'));
+
+        $trend = collect(range(7, 0))->map(function ($i) use ($weeklyCounts) {
+            $weekStart = now()->subWeeks($i)->startOfWeek();
+            return [
+                'label' => $weekStart->format('j M'),
+                'count' => $weeklyCounts->get($weekStart->format('Y-m-d'), collect())->count(),
+            ];
+        })->all();
 
         $seatLimits = CourseOrganization::where('organization_id', $orgId)
             ->pluck('seat_limit', 'course_id');
@@ -49,12 +75,12 @@ class DashboardController extends Controller
                 $course->seat_limit = $seatLimits[$course->id] ?? null;
             });
 
-        $notStarted = $base()->with(['user', 'course'])
+        $notStartedList = $base()->with(['user', 'course'])
             ->where('progress_percent', 0)->whereNull('completed_at')
             ->where('created_at', '<=', now()->subDays(7))
             ->latest()->limit(6)->get();
 
-        $expiring = $base()->with(['user', 'course'])
+        $expiringList = $base()->with(['user', 'course'])
             ->whereNull('completed_at')
             ->whereBetween('expires_at', [now(), now()->addDays(14)])
             ->orderBy('expires_at')->limit(6)->get();
@@ -63,7 +89,15 @@ class DashboardController extends Controller
             ->whereNotNull('completed_at')
             ->latest('completed_at')->limit(6)->get();
 
-        return view('business.dashboard', compact('stats', 'courses', 'notStarted', 'expiring', 'recent'));
+        return view('business.dashboard', [
+            'stats' => $stats,
+            'statusBreakdown' => $statusBreakdown,
+            'trend' => $trend,
+            'courses' => $courses,
+            'notStarted' => $notStartedList,
+            'expiring' => $expiringList,
+            'recent' => $recent,
+        ]);
     }
 
     public function course(Course $course)
@@ -85,33 +119,41 @@ class DashboardController extends Controller
         return view('business.course', compact('course', 'enrollments', 'seatLimit'));
     }
 
+    /** Full org roster — every student, not just the ones who have enrolled in something. */
     public function students(Request $request)
     {
         $orgId = $this->orgId();
+        $scoped = fn ($q) => $q->where('organization_id', $orgId);
 
-        $enrollments = Enrollment::with(['user', 'course', 'certificate'])
-            ->where('organization_id', $orgId)
-            ->when($request->q, fn ($q, $s) => $q->whereHas('user', fn ($u) => $u->where(fn ($w) => $w
+        $students = User::where('organization_id', $orgId)
+            ->role('student')
+            ->withCount([
+                'enrollments as enrollments_count' => $scoped,
+                'enrollments as completed_count' => fn ($q) => $scoped($q)->whereNotNull('completed_at'),
+            ])
+            ->with(['enrollments' => fn ($q) => $scoped($q)->with(['course:id,title', 'certificate'])->latest()])
+            ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$s}%")
                 ->orWhere('email', 'like', "%{$s}%")
-                ->orWhere('employee_ref', 'like', "%{$s}%"))))
-            ->when($request->course, fn ($q, $c) => $q->where('course_id', $c))
-            ->when($request->status, function ($q, $status) {
+                ->orWhere('employee_ref', 'like', "%{$s}%")))
+            ->when($request->course, fn ($q, $c) => $q->whereHas('enrollments', fn ($e) => $scoped($e)->where('course_id', $c)))
+            ->when($request->status, function ($q, $status) use ($scoped) {
                 match ($status) {
-                    'completed' => $q->whereNotNull('completed_at'),
-                    'not_started' => $q->where('progress_percent', 0)->whereNull('completed_at'),
-                    'in_progress' => $q->where('progress_percent', '>', 0)->whereNull('completed_at'),
-                    'expired' => $q->whereNull('completed_at')->whereNotNull('expires_at')->where('expires_at', '<', now()),
+                    'completed' => $q->whereHas('enrollments', fn ($e) => $scoped($e)->whereNotNull('completed_at')),
+                    'in_progress' => $q->whereHas('enrollments', fn ($e) => $scoped($e)->where('progress_percent', '>', 0)->whereNull('completed_at')),
+                    'not_started' => $q->whereHas('enrollments', fn ($e) => $scoped($e)->where('progress_percent', 0)->whereNull('completed_at')),
+                    'expired' => $q->whereHas('enrollments', fn ($e) => $scoped($e)->whereNull('completed_at')->whereNotNull('expires_at')->where('expires_at', '<', now())),
+                    'not_enrolled' => $q->whereDoesntHave('enrollments', $scoped),
                     default => null,
                 };
             })
-            ->latest()
+            ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
         $courses = Course::whereHas('enrollments', fn ($q) => $q->where('organization_id', $orgId))->orderBy('title')->get(['id', 'title']);
 
-        return view('business.students', compact('enrollments', 'courses'));
+        return view('business.students', compact('students', 'courses'));
     }
 
     public function certificates()

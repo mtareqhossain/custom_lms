@@ -10,7 +10,7 @@ class EnsureBusinessUser
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        abort_unless($user && $user->hasRole('business') && $user->organization_id, 403);
+        abort_unless($user && $user->hasAnyRole(['business', 'manager']) && $user->organization_id, 403);
 
         return $next($request);
     }

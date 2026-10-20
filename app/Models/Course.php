@@ -5,6 +5,7 @@ use App\Enums\PricingType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasManyThrough};
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\CourseOrganization;
 
 class Course extends Model
 {
@@ -41,6 +42,12 @@ class Course extends Model
     return $this->hasMany(\App\Models\Quiz::class);
 }
 
+public function organizations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+{
+    return $this->belongsToMany(Organization::class)
+        ->using(CourseOrganization::class)
+        ->withPivot('seat_limit');
+}
 public function finalQuizzes(): \Illuminate\Database\Eloquent\Relations\HasMany
 {
     return $this->quizzes()->whereNull('lesson_id');

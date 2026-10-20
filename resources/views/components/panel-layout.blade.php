@@ -1,16 +1,17 @@
 @props(['title' => null])
 @php
     $user = auth()->user();
-    $role = $user->hasRole('business') ? 'business' : ($user->hasAnyRole(['admin', 'instructor']) ? 'staff' : 'student');
-
+    //$role = $user->hasRole('business') ? 'business' : ($user->hasAnyRole(['admin', 'instructor']) ? 'staff' : 'student');
+    $role = $user->hasAnyRole(['business', 'manager']) ? 'business' : ($user->hasAnyRole(['admin', 'instructor']) ? 'staff' : 'student');
     // [label, route name or /path, icon, optional extra route patterns for the active state]
     $groups = match ($role) {
         'business' => ['Organization' => [
-            ['Overview', 'business.dashboard', 'grid', ['business.dashboard', 'business.course']],
-            ['Team', 'business.students', 'users'],
-            ['Certificates', 'business.certificates', 'award'],
-            ['Import students', 'business.import.create', 'upload'],
-        ]],
+    ['Overview', 'business.dashboard', 'grid', ['business.dashboard', 'business.course']],
+    ['Team', 'business.students', 'users'],
+    ['Assignments', 'business.assignments.index', 'calendar', ['business.assignments.*']],
+    ['Certificates', 'business.certificates', 'award'],
+    ['Import students', 'business.import.create', 'upload'],
+]],
         'staff' => ['Teaching' => [
             ['Dashboard', 'instructor.dashboard', 'grid', ['instructor.*']],
             ['Studio', '/admin', 'pencil'],
@@ -25,7 +26,8 @@
     $groups['Explore'] = [['Browse courses', 'courses.index', 'compass']];
 
     $initials = collect(explode(' ', trim($user->name)))->filter()->take(2)->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))->implode('');
-    $roleLabel = ['business' => 'Business admin', 'staff' => $user->hasRole('admin') ? 'Administrator' : 'Instructor', 'student' => 'Student'][$role];
+    $roleLabel = ['business' => $user->hasRole('business') ? 'Business admin' : 'Manager', 'staff' => $user->hasRole('admin') ? 'Administrator' : 'Instructor', 'student' => 'Student'][$role];
+    //$roleLabel = ['business' => 'Business admin', 'staff' => $user->hasRole('admin') ? 'Administrator' : 'Instructor', 'student' => 'Student'][$role];
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">

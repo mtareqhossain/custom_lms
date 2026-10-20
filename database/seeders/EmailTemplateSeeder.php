@@ -79,6 +79,28 @@ class EmailTemplateSeeder extends Seeder
                 'available_placeholders' => ['student_name', 'app_name'],
                 'is_system' => false,
             ],
+            [
+    'slug' => 'assignment_due_soon',
+    'name' => 'Training Assignment — Due Soon',
+    'subject' => 'Reminder: {{course_title}} is due {{due_date}}',
+    'body' => '<p>Hi {{student_name}},</p>'
+        . '<p>Just a reminder — <strong>{{course_title}}</strong> is due on {{due_date}} ({{days}} day(s) left).</p>'
+        . '<p><a href="' . url('/my-courses') . '">Continue the course</a></p>',
+    'description' => 'Sent automatically when an assigned course is due within 3 days.',
+    'available_placeholders' => ['student_name', 'course_title', 'due_date', 'days', 'app_name'],
+    'is_system' => true,
+],
+[
+    'slug' => 'assignment_overdue',
+    'name' => 'Training Assignment — Overdue',
+    'subject' => 'Overdue: {{course_title}} was due {{due_date}}',
+    'body' => '<p>Hi {{student_name}},</p>'
+        . '<p><strong>{{course_title}}</strong> was due on {{due_date}} and is now {{days}} day(s) overdue.</p>'
+        . '<p><a href="' . url('/my-courses') . '">Complete it now</a></p>',
+    'description' => 'Sent automatically once a day while an assigned course remains incomplete past its deadline.',
+    'available_placeholders' => ['student_name', 'course_title', 'due_date', 'days', 'app_name'],
+    'is_system' => true,
+],
         ];
 
         foreach ($templates as $template) {

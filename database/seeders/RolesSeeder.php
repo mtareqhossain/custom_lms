@@ -10,9 +10,9 @@ class RolesSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['admin', 'instructor', 'business', 'student'] as $role) {
-            Role::findOrCreate($role);
-        }
+        foreach (['admin', 'instructor', 'business', 'manager', 'student'] as $role) {
+    Role::findOrCreate($role);
+}
 
         $admin = User::firstOrCreate(
             ['email' => 'admin@lms.test'],

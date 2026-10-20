@@ -14,6 +14,7 @@
         <x-stat label="Completion rate" :value="$stats['completion_rate'].'%'" />
         <x-stat label="Active this week" :value="$stats['active_week']" />
         <x-stat label="Certificates" :value="$stats['certificates']" class="col-span-2 lg:col-span-1" />
+        <x-stat label="Assignments overdue" :value="$stats['assignments_overdue']" />
     </div>
 
         <div class="mt-8 grid gap-6 lg:grid-cols-2">

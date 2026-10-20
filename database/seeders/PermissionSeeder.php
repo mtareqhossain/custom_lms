@@ -42,5 +42,9 @@ class PermissionSeeder extends Seeder
         Role::findByName('student')->syncPermissions([
             'chatbot.use', 'certificates.view', 'certificates.download',
         ]);
+        Role::findOrCreate('manager')->syncPermissions([
+    'business.dashboard.view', 'business.assignments.manage',
+    'students.view', 'certificates.view', 'certificates.download',
+]);
     }
 }

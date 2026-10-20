@@ -31,6 +31,7 @@ class User extends Authenticatable implements FilamentUser
         'is_active',
         'employee_ref',
         'avatar',
+        'manager_id'
     ];
 
     /**
@@ -78,5 +79,14 @@ class User extends Authenticatable implements FilamentUser
         public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_active && $this->hasAnyRole(['admin', 'instructor']);
+    }
+    public function manager(): BelongsTo {
+        return $this->belongsTo(User::class, 'manager_id');
+        }
+public function directReports(): HasMany {
+    return $this->hasMany(User::class, 'manager_id');
+    }
+public function trainingAssignments(): HasMany {
+    return $this->hasMany(TrainingAssignment::class);
     }
 }

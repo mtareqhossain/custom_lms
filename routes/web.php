@@ -32,3 +32,4 @@ require __DIR__.'/legal.php';
 require __DIR__.'/two-factor.php';
 require __DIR__.'/chatbot.php';
 require __DIR__.'/quiz.php';
+require __DIR__.'/assignments.php';

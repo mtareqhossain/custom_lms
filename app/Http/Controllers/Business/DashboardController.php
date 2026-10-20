@@ -7,16 +7,30 @@ use App\Models\Course;
 use App\Models\CourseOrganization;
 use App\Models\Enrollment;
 use App\Models\LessonProgress;
+use App\Models\TrainingAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-/** Replaces the Phase 4 controller: richer overview plus Team and Certificates pages. */
+/** Replaces the Phase 4 controller: richer overview, status/trend/hours charts, Team and Certificates pages. */
 class DashboardController extends Controller
 {
     private function orgId(): int
     {
         return (int) Auth::user()->organization_id;
+    }
+
+    /** A pure manager (no 'business' role) only ever sees their own direct reports. */
+    private function assignableStudents()
+    {
+        $user = Auth::user();
+        $q = User::where('organization_id', $this->orgId())->role('student');
+
+        if ($user->hasRole('manager') && ! $user->hasRole('business')) {
+            $q->where('manager_id', $user->id);
+        }
+
+        return $q;
     }
 
     public function index()
@@ -29,7 +43,7 @@ class DashboardController extends Controller
         $completed = $base()->whereNotNull('completed_at')->count();
 
         $stats = [
-            'students' => User::where('organization_id', $orgId)->role('student')->count(),
+            'students' => $this->assignableStudents()->count(),
             'enrollments' => $total,
             'completion_rate' => $total ? (int) round($completed / $total * 100) : 0,
             'active_week' => LessonProgress::whereHas('enrollment', fn ($q) => $q->where('organization_id', $orgId))
@@ -37,29 +51,32 @@ class DashboardController extends Controller
             'certificates' => Certificate::whereHas('enrollment', fn ($q) => $q->where('organization_id', $orgId))->count(),
         ];
 
-        // Mutually exclusive buckets, in priority order, so they sum back to $total.
+        $totalSeconds = LessonProgress::whereHas('enrollment', fn ($q) => $q->where('organization_id', $orgId))->sum('seconds_watched');
+        $stats['hours_logged'] = round($totalSeconds / 3600, 1);
+
+        $assignedIds = $this->assignableStudents()->pluck('id');
+        $stats['assignments_overdue'] = TrainingAssignment::where('organization_id', $orgId)
+            ->whereIn('user_id', $assignedIds)
+            ->whereNull('completed_at')
+            ->whereNotNull('due_at')
+            ->where('due_at', '<', now())
+            ->count();
+
         $expired = $base()->whereNull('completed_at')->whereNotNull('expires_at')->where('expires_at', '<', now())->count();
         $inProgress = $notExpired($base()->whereNull('completed_at')->where('progress_percent', '>', 0))->count();
         $notStarted = $notExpired($base()->whereNull('completed_at')->where('progress_percent', 0))->count();
 
         $statusBreakdown = [
-            'completed' => $completed,
-            'in_progress' => $inProgress,
-            'not_started' => $notStarted,
-            'expired' => $expired,
+            'completed' => $completed, 'in_progress' => $inProgress,
+            'not_started' => $notStarted, 'expired' => $expired,
         ];
 
-        $weeklyCounts = $base()
-            ->where('created_at', '>=', now()->subWeeks(7)->startOfWeek())
-            ->get()
+        $weeklyCounts = $base()->where('created_at', '>=', now()->subWeeks(7)->startOfWeek())->get()
             ->groupBy(fn ($e) => $e->created_at->startOfWeek()->format('Y-m-d'));
 
         $trend = collect(range(7, 0))->map(function ($i) use ($weeklyCounts) {
             $weekStart = now()->subWeeks($i)->startOfWeek();
-            return [
-                'label' => $weekStart->format('j M'),
-                'count' => $weeklyCounts->get($weekStart->format('Y-m-d'), collect())->count(),
-            ];
+            return ['label' => $weekStart->format('j M'), 'count' => $weeklyCounts->get($weekStart->format('Y-m-d'), collect())->count()];
         })->all();
 
         $seatLimits = CourseOrganization::where('organization_id', $orgId)
@@ -119,18 +136,17 @@ class DashboardController extends Controller
         return view('business.course', compact('course', 'enrollments', 'seatLimit'));
     }
 
-    /** Full org roster — every student, not just the ones who have enrolled in something. */
     public function students(Request $request)
     {
         $orgId = $this->orgId();
         $scoped = fn ($q) => $q->where('organization_id', $orgId);
 
-        $students = User::where('organization_id', $orgId)
-            ->role('student')
+        $students = $this->assignableStudents()
             ->withCount([
                 'enrollments as enrollments_count' => $scoped,
                 'enrollments as completed_count' => fn ($q) => $scoped($q)->whereNotNull('completed_at'),
             ])
+            ->withSum(['lessonProgress as seconds_watched_sum' => fn ($q) => $q->where('enrollments.organization_id', $orgId)], 'seconds_watched')
             ->with(['enrollments' => fn ($q) => $scoped($q)->with(['course:id,title', 'certificate'])->latest()])
             ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$s}%")

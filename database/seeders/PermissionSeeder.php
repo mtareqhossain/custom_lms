@@ -34,17 +34,19 @@ class PermissionSeeder extends Seeder
         ]); // no courses.delete, no courses.publish
 
         Role::findByName('business')->syncPermissions([
-    'business.dashboard.view', 'business.export', 'business.assignments.manage', // added
+    'business.dashboard.view', 'business.export', 'business.assignments.manage', 'students.manage',
     'students.view', 'students.import',
     'certificates.view', 'certificates.download',
+]);
+
+Role::findOrCreate('manager')->syncPermissions([
+    'business.dashboard.view', 'business.assignments.manage', 'students.manage',
+    'students.view', 'certificates.view', 'certificates.download',
 ]);
 
         Role::findByName('student')->syncPermissions([
             'chatbot.use', 'certificates.view', 'certificates.download',
         ]);
-        Role::findOrCreate('manager')->syncPermissions([
-    'business.dashboard.view', 'business.assignments.manage',
-    'students.view', 'certificates.view', 'certificates.download',
-]);
+
     }
 }

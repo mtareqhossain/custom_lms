@@ -142,6 +142,7 @@ class DashboardController extends Controller
         $scoped = fn ($q) => $q->where('organization_id', $orgId);
 
         $students = $this->assignableStudents()
+            ->with('manager:id,name')
             ->withCount([
                 'enrollments as enrollments_count' => $scoped,
                 'enrollments as completed_count' => fn ($q) => $scoped($q)->whereNotNull('completed_at'),

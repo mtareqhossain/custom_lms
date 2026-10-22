@@ -11,9 +11,10 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use App\Models\LessonProgress;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
@@ -89,4 +90,8 @@ public function directReports(): HasMany {
 public function trainingAssignments(): HasMany {
     return $this->hasMany(TrainingAssignment::class);
     }
+    public function lessonProgress(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+{
+    return $this->hasManyThrough(LessonProgress::class, Enrollment::class);
+}
 }

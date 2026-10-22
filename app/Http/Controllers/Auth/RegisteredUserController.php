@@ -30,11 +30,46 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+
+
+        // Honeypot: a real visitor never fills this in
+    if ($request->filled('website')) {
+        abort(422);
+    }
+
+    // Time trap: a bot that submits in under 3 seconds didn't actually read the form
+    if ($request->filled('form_rendered_at') && (time() - (int) $request->form_rendered_at) < 3) {
+        abort(422);
+    }
+
+    $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => [
+            'required',
+            'string',
+            'lowercase',
+            'email',
+            'max:255',
+            'unique:' . User::class,
+            function ($attribute, $value, $fail) {
+                $domain = strtolower(substr(strrchr($value, '@'), 1));
+                $blocked = ['mailinator.com', 'tempmail.com', 'guerrillamail.com', '10minutemail.com', 'yopmail.com', 'trashmail.com', 'throwawaymail.com'];
+                if (in_array($domain, $blocked, true)) {
+                    $fail('Please use a permanent email address.');
+                }
+            },
+        ],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+    ]);
+    $verify = \Illuminate\Support\Facades\Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+    'secret' => config('services.turnstile.secret_key'),
+    'response' => $request->input('cf-turnstile-response'),
+    'remoteip' => $request->ip(),
+]);
+
+if (! $verify->json('success')) {
+    throw ValidationException::withMessages(['email' => 'Verification failed — please try again.']);
+}
 
         $user = User::create([
             'name' => $request->name,

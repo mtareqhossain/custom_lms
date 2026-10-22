@@ -10,17 +10,17 @@ class PermissionSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            'courses.view', 'courses.create', 'courses.edit', 'courses.delete', 'courses.publish',
-            'quizzes.manage',
-            'students.view', 'students.import',
-            'business.dashboard.view', 'business.export',
-            'certificates.view', 'certificates.download',
-            'chatbot.use', 'content.index.manage',
-            'campaigns.manage', 'email_templates.manage',
-            'categories.manage', 'certificate_fonts.manage',
-            'organizations.manage', 'enrollments.manage',
-            'settings.site.manage', 'users.manage', 'roles.manage',
-        ];
+    'courses.view', 'courses.create', 'courses.edit', 'courses.delete', 'courses.publish',
+    'quizzes.manage',
+    'students.view', 'students.import',
+    'business.dashboard.view', 'business.export', 'business.assignments.manage',
+    'certificates.view', 'certificates.download',
+    'chatbot.use', 'content.index.manage',
+    'campaigns.manage', 'email_templates.manage',
+    'categories.manage', 'certificate_fonts.manage',
+    'organizations.manage', 'enrollments.manage',
+    'settings.site.manage', 'users.manage', 'roles.manage',
+];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
@@ -34,10 +34,10 @@ class PermissionSeeder extends Seeder
         ]); // no courses.delete, no courses.publish
 
         Role::findByName('business')->syncPermissions([
-            'business.dashboard.view', 'business.export',
-            'students.view', 'students.import',
-            'certificates.view', 'certificates.download',
-        ]);
+    'business.dashboard.view', 'business.export', 'business.assignments.manage', // added
+    'students.view', 'students.import',
+    'certificates.view', 'certificates.download',
+]);
 
         Role::findByName('student')->syncPermissions([
             'chatbot.use', 'certificates.view', 'certificates.download',

@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 Schedule::command('lms:remind-expiring')->dailyAt('08:00');
 Schedule::command('assignments:process-recurring')->dailyAt('07:00');
 Schedule::command('assignments:send-reminders')->dailyAt('08:00');
+Schedule::command('users:prune-unverified')->daily();

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class LoginRequest extends FormRequest
 {
@@ -28,7 +29,16 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => [
+    'required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class,
+    function ($attribute, $value, $fail) {
+        $domain = strtolower(substr(strrchr($value, '@'), 1));
+        $blocked = ['mailinator.com', 'tempmail.com', 'guerrillamail.com', '10minutemail.com', 'yopmail.com', 'trashmail.com', 'throwawaymail.com'];
+        if (in_array($domain, $blocked, true)) {
+            $fail('Please use a permanent email address.');
+        }
+    },
+],
             'password' => ['required', 'string'],
         ];
     }

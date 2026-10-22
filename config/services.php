@@ -56,6 +56,10 @@ return [
     'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
     'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'text-embedding-004'),
 ],
+'turnstile' => [
+    'site_key' => env('TURNSTILE_SITE_KEY'),
+    'secret_key' => env('TURNSTILE_SECRET_KEY'),
+],
     ],
 
 ];

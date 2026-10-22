@@ -43,10 +43,16 @@
             <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
                 {{ __('Already registered?') }}
             </a>
-
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
             <x-primary-button class="ms-4">
                 {{ __('Register') }}
             </x-primary-button>
         </div>
+        <div style="position:absolute; left:-9999px;" aria-hidden="true">
+    <label>Leave this field empty</label>
+    <input type="text" name="website" tabindex="-1" autocomplete="off">
+</div>
+<input type="hidden" name="form_rendered_at" value="{{ now()->timestamp }}">
     </form>
 </x-guest-layout>

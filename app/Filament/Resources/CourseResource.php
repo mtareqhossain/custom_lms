@@ -115,7 +115,13 @@ class CourseResource extends Resource
 
                     Forms\Components\Textarea::make('summary')->rows(2)->columnSpanFull(),
                     Forms\Components\RichEditor::make('description')->columnSpanFull(),
-                    Forms\Components\FileUpload::make('thumbnail')->image()->directory('thumbnails')->imageEditor(),
+                    // Forms\Components\FileUpload::make('thumbnail')->image()->directory('thumbnails')->imageEditor(),
+                    Forms\Components\FileUpload::make('thumbnail')
+                            ->image()
+                            ->directory('thumbnails')
+                            ->imageEditor()
+                            ->saveUploadedFileUsing(fn ($file) => \App\Models\Media::storeUpload($file, 'thumbnails')->path)
+                            ->hintAction(\App\Filament\Support\MediaLibraryAction::make('thumbnail')),
                     Forms\Components\Select::make('intro_video_provider')->label('Intro video provider')
                         ->options(['youtube' => 'YouTube', 'vimeo' => 'Vimeo', 'bunny' => 'Bunny Stream', 's3' => 'Uploaded file (S3 path)'])
                         ->helperText('Shown on the public course page before someone enrolls. Keep it short and unlocked.'),

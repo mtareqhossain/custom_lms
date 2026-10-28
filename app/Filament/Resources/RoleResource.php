@@ -49,10 +49,27 @@ class RoleResource extends Resource
                 Tables\Columns\TextColumn::make('users_count')->counts('users')->label('Users'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
-                    ->disabled(fn (Role $record) => in_array($record->name, ['admin', 'student', 'instructor', 'business'])),
-            ]);
+    Tables\Actions\EditAction::make(),
+    Tables\Actions\DeleteAction::make()
+        ->disabled(fn (Role $record) => in_array($record->name, ['admin', 'student', 'instructor', 'business', 'manager'])),
+])
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\DeleteBulkAction::make()
+            ->action(function ($records) {
+                $protected = ['admin', 'student', 'instructor', 'business', 'manager'];
+                $blocked = $records->whereIn('name', $protected)->count();
+                $records->whereNotIn('name', $protected)->each->delete();
+
+                if ($blocked) {
+                    \Filament\Notifications\Notification::make()
+                        ->title("Skipped {$blocked} core role(s) — those can't be deleted.")
+                        ->warning()
+                        ->send();
+                }
+            }),
+    ]),
+]);
     }
 
     public static function getPages(): array

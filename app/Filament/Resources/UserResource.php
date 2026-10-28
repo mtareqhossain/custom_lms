@@ -44,8 +44,26 @@ class UserResource extends Resource
             Tables\Columns\TextColumn::make('organization.name')->placeholder('None'),
             Tables\Columns\IconColumn::make('is_active')->boolean(),
         ])->filters([
-            Tables\Filters\SelectFilter::make('roles')->relationship('roles', 'name'),
-        ])->actions([Tables\Actions\EditAction::make()]);
+    Tables\Filters\SelectFilter::make('roles')->relationship('roles', 'name'),
+])->actions([Tables\Actions\EditAction::make()])
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\BulkAction::make('activate')
+            ->label('Activate')
+            ->icon('heroicon-o-check')
+            ->color('success')
+            ->action(fn ($records) => $records->each->update(['is_active' => true])),
+        Tables\Actions\BulkAction::make('deactivate')
+            ->label('Deactivate')
+            ->icon('heroicon-o-x-mark')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->action(fn ($records) => $records->each(function ($user) {
+                if ($user->id === auth()->id()) return; // never let an admin deactivate themselves
+                $user->update(['is_active' => false]);
+            })),
+    ]),
+]);
     }
 
     public static function getPages(): array

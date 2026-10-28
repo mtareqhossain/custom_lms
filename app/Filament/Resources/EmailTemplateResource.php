@@ -87,10 +87,26 @@ public static function canViewAny(): bool { return auth()->user()->can('email_te
                 Tables\Filters\TernaryFilter::make('is_active'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn (EmailTemplate $record) => !$record->is_system),
-            ]);
+    Tables\Actions\EditAction::make(),
+    Tables\Actions\DeleteAction::make()
+        ->visible(fn (EmailTemplate $record) => !$record->is_system),
+])
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\DeleteBulkAction::make()
+            ->action(function ($records) {
+                $protected = $records->where('is_system', true)->count();
+                $records->where('is_system', false)->each->delete();
+
+                if ($protected) {
+                    \Filament\Notifications\Notification::make()
+                        ->title("Skipped {$protected} system template(s) — those can't be deleted.")
+                        ->warning()
+                        ->send();
+                }
+            }),
+    ]),
+]);
     }
 
     public static function getPages(): array

@@ -58,7 +58,12 @@ class EnrollmentResource extends Resource
                     ),
             ])
             ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()->label('Revoke')])
-            ->defaultSort('created_at', 'desc');
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\DeleteBulkAction::make()->label('Revoke selected'),
+    ]),
+])
+->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array

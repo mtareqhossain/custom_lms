@@ -40,7 +40,22 @@ class OrganizationResource extends Resource
             Tables\Columns\TextColumn::make('users_count')->counts('users')->label('People'),
             Tables\Columns\TextColumn::make('courses_count')->counts('courses')->label('Courses'),
             Tables\Columns\IconColumn::make('is_active')->boolean(),
-        ])->actions([Tables\Actions\EditAction::make()]);
+        ])->actions([Tables\Actions\EditAction::make()])
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\BulkAction::make('activate')
+            ->label('Activate')
+            ->icon('heroicon-o-check')
+            ->color('success')
+            ->action(fn ($records) => $records->each->update(['is_active' => true])),
+        Tables\Actions\BulkAction::make('deactivate')
+            ->label('Deactivate')
+            ->icon('heroicon-o-x-mark')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->action(fn ($records) => $records->each->update(['is_active' => false])),
+    ]),
+]);
     }
 
     public static function getPages(): array

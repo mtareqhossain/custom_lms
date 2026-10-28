@@ -167,9 +167,24 @@ class QuizResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_active'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ]);
+    Tables\Actions\EditAction::make(),
+    Tables\Actions\DeleteAction::make(),
+])
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\BulkAction::make('activate')
+            ->label('Activate')
+            ->icon('heroicon-o-check')
+            ->color('success')
+            ->action(fn ($records) => $records->each->update(['is_active' => true])),
+        Tables\Actions\BulkAction::make('deactivate')
+            ->label('Deactivate')
+            ->icon('heroicon-o-x-mark')
+            ->color('danger')
+            ->action(fn ($records) => $records->each->update(['is_active' => false])),
+        Tables\Actions\DeleteBulkAction::make(),
+    ]),
+]);
     }
 
     public static function getPages(): array

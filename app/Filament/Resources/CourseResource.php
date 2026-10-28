@@ -115,7 +115,6 @@ class CourseResource extends Resource
 
                     Forms\Components\Textarea::make('summary')->rows(2)->columnSpanFull(),
                     Forms\Components\RichEditor::make('description')->columnSpanFull(),
-                    // Forms\Components\FileUpload::make('thumbnail')->image()->directory('thumbnails')->imageEditor(),
                     Forms\Components\FileUpload::make('thumbnail')
                             ->image()
                             ->directory('thumbnails')
@@ -234,6 +233,29 @@ class CourseResource extends Resource
                     }),
 
                 Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('publish')
+                        ->label('Publish')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn () => auth()->user()->can('courses.publish'))
+                        ->requiresConfirmation()
+                        ->modalDescription('This makes every selected course live and visible to students.')
+                        ->action(fn ($records) => $records->each(fn (Course $course) => $course->update([
+                            'status' => 'published',
+                            'published_at' => $course->published_at ?? now(),
+                        ]))),
+                    Tables\Actions\BulkAction::make('sendBackToDraft')
+                        ->label('Send back to draft')
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('warning')
+                        ->visible(fn () => auth()->user()->can('courses.publish'))
+                        ->requiresConfirmation()
+                        ->action(fn ($records) => $records->each->update(['status' => 'draft'])),
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('created_at', 'desc');
     }
